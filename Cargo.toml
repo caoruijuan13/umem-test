@@ -1,0 +1,10 @@
+[package]
+name = "umem-test"
+version = "0.1.0"
+authors = ["caoruijuan13@gmail.com <caoruijuan13@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+xsk-rs = "0.2.4"
