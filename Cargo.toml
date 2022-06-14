@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-xsk-rs = "0.2.4"
+xsk-rs = "0.4"
