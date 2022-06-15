@@ -9,3 +9,6 @@ edition = "2018"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 xsk-rs = "0.4"
+tempfile = "3.3.0"
+nix = "0.24.1"
+rand = "0.8.5"
