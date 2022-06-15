@@ -58,8 +58,7 @@ pub async fn umem_test() {
 
     println!("iovecs-{}:{:?}", iovecs.len(), iovecs);
 
-    let to_write = super::uio_test::gen_data();
-    super::uio_test::check_read(&mut iovecs, to_write);
+    super::uio_test::check_read(&mut iovecs);
 
     // read
     let rx_q = vec![0, 2];

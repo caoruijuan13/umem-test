@@ -34,7 +34,7 @@ pub fn test_readv() {
     for v in &mut storage {
         iovecs.push(IoSliceMut::new(&mut v[..]));
     }
-    check_read(&mut iovecs, to_write);
+    check_read(&mut iovecs);
 }
 
 pub fn test_pwritev() {
@@ -80,7 +80,8 @@ pub fn gen_data() -> Vec<u8> {
 }
 
 /// check read
-pub fn check_read(iovecs: &mut Vec<IoSliceMut>, to_write: Vec<u8>) {
+pub fn check_read(iovecs: &mut Vec<IoSliceMut>) {
+    let to_write = gen_data();
     let pipe_res = pipe();
     assert!(pipe_res.is_ok());
     let (reader, writer) = pipe_res.ok().unwrap();
