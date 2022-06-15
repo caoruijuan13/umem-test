@@ -6,7 +6,7 @@ use nix::unistd::*;
 use std::io::IoSliceMut;
 use std::{convert::TryInto, io::Write, str};
 
-async fn umem_test() {
+pub async fn umem_test() {
     // config
     let frame_size = 2048;
     let frame_count = 3;
@@ -33,13 +33,12 @@ async fn umem_test() {
     let mut iovecs = Vec::with_capacity(descs.len());
     
     // get ownership
-    let write_num = 1;
+    let write_num = 2;
     for i in 0..write_num {
         let index = q.pop_front().unwrap() as usize;
         // write and assert
         unsafe {
             let (mut h, mut d) = umem.frame_mut(&mut descs[index]);
-
             iovecs.push(IoSliceMut::new(d.contents_mut()));
 
             // h.cursor().write_all(format!("hello-{}", index).as_bytes()).unwrap();
@@ -56,6 +55,8 @@ async fn umem_test() {
             // assert_eq!(umem.data_mut(&mut descs[index]).contents(), b"world");
         }
     }
+
+    println!("iovecs-{}:{:?}", iovecs.len(), iovecs);
 
     let to_write = super::uio_test::gen_data();
     super::uio_test::check_read(&mut iovecs, to_write);
