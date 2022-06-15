@@ -1,9 +1,10 @@
 use xsk_rs::{config::{FrameSize, UmemConfig}, umem::Umem};
-
+use std::collections::VecDeque;
 use nix::sys::uio::*;
 use nix::unistd::*;
 #[cfg(not(target_os = "redox"))]
 use std::io::IoSliceMut;
+use std::{convert::TryInto, io::Write, str};
 
 async fn umem_test() {
     // config

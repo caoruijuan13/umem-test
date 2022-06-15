@@ -6,10 +6,9 @@ mod socket_test;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    // umem_test().await;
-    // xsk_test();
-    // test_pwritev();
-    uio_test::test_readv();
+    xsk_test::umem_test().await;
+    // uio_test::test_pwritev();
+    // uio_test::test_readv();
 
     Ok(())
 }
