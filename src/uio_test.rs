@@ -15,6 +15,22 @@ use std::io::{IoSlice, IoSliceMut};
 use tempfile::tempfile;
 use tempfile::tempdir;
 
+use std::io::Read;
+
+pub const WRITE_LEN:usize = 64*3;
+
+/// write test
+pub fn write_test(buf: &mut [u8]) {
+    let mut file = tempfile().unwrap();
+    // let buf = [1u8;8];
+    assert_eq!(Ok(8), pwrite(file.as_raw_fd(), &buf, 8));
+    let mut file_content = Vec::new();
+    file.read_to_end(&mut file_content).unwrap();
+    let mut expected = vec![0u8;8];
+    expected.extend(vec![1;8]);
+    assert_eq!(file_content, expected);
+}
+
 pub fn test_readv() {
     let to_write = gen_data();
     println!("to_write:{:?}", to_write);
@@ -72,7 +88,7 @@ pub fn gen_data() -> Vec<u8> {
     let s:String = thread_rng()
         .sample_iter(&Alphanumeric)
         .map(char::from)
-        .take(128)
+        .take(WRITE_LEN)
         .collect();
     let to_write = s.as_bytes().to_vec();
     println!("to_write:{:?}", to_write);
