@@ -78,6 +78,16 @@ impl FrameDesc {
         self.addr
     }
 
+    /// Adjust addr: the starting address of the packet data segment of the frame
+    /// pointed at by this descriptor.
+    #[inline]
+    pub fn adjust_addr(&mut self, delta: i32) -> usize{
+        if self.addr as i32 + delta > 0 {
+            self.addr = (self.addr as i32 + delta) as usize;
+        }
+        self.addr
+    }
+
     /// Current headroom and packet data lengths for the frame pointed
     /// at by this descriptor.
     #[inline]
@@ -91,10 +101,24 @@ impl FrameDesc {
         self.options
     }
 
-    /// Set the frame options.
+    /// Adjust data (add and remove)
     #[inline]
-    pub fn set_data_length(&mut self, data: usize) {
-        self.lengths.data = data;
+    pub fn adjust_data(&mut self, data: usize) {
+        self.lengths.data += data;
+    }
+
+    /// Add header from right of headroom
+    #[inline]
+    pub fn add_header(&mut self, delta: usize) {
+        self.lengths.headroom += delta;
+    }
+
+    /// Adjust headroom (add and remove)
+    #[inline]
+    pub fn adjust_headroom(&mut self, delta: usize) {
+        // self.lengths.headroom -= delta;
+        self.adjust_addr(0 - delta as i32);
+        self.lengths.data += delta;
     }
 
     /// Set the frame options.

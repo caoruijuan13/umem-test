@@ -13,3 +13,4 @@ xsk-rs = { path = "xsk-rs"}
 tempfile = "3.3.0"
 nix = "0.24.1"
 rand = "0.8.5"
+lazy_static = "1.4"

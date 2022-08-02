@@ -21,6 +21,7 @@ use std::{
     num::NonZeroU32,
     ptr::{self, NonNull},
     sync::{Arc, Mutex},
+    collections::VecDeque,
 };
 
 use crate::{
@@ -181,6 +182,7 @@ impl Umem {
         let frame_count = frame_count.get() as usize;
 
         let mut frame_descs: Vec<FrameDesc> = Vec::with_capacity(frame_count);
+        let mut available_queue: VecDeque<FrameDesc> = VecDeque::with_capacity(frame_count);
 
         for i in 0..frame_count {
             let addr = (i * frame_layout.frame_size())
@@ -188,14 +190,32 @@ impl Umem {
                 + frame_layout.frame_headroom;
 
             frame_descs.push(FrameDesc::new(addr));
+            available_queue.push_back(frame_descs[i]);
         }
 
         let umem = Umem {
             inner: Arc::new(Mutex::new(inner)),
             mem,
+            // available_queue
         };
 
         Ok((umem, frame_descs))
+    }
+
+    /// Get an available frame from available queue.
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    // #[inline]
+    pub fn get_frame(&mut self) -> Option<FrameDesc> {
+        self.mem.get_frame()
+    }
+
+    /// Release a frame to available queue
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    // #[inline]
+    pub fn release_frame(&mut self, desc: FrameDesc) {
+        self.mem.release_frame(desc);
     }
 
     /// The headroom and packet data segments of the `Umem` frame

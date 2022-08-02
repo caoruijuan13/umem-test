@@ -3,10 +3,12 @@ use mmap::Mmap;
 
 use std::{
     io,
+    io::{IoSlice, IoSliceMut},
     num::NonZeroU32,
     ptr::NonNull,
     slice,
     sync::{Arc, Mutex},
+    collections::VecDeque,
 };
 
 use super::{
@@ -26,6 +28,8 @@ pub struct UmemRegion {
     addr: NonNull<libc::c_void>,
     len: usize,
     _mmap: Arc<Mutex<Mmap>>,
+    /// available queue of FrameDesc
+    available_queue: Arc<Mutex<VecDeque<FrameDesc>>>
 }
 
 unsafe impl Send for UmemRegion {}
@@ -51,6 +55,7 @@ impl UmemRegion {
             addr: mmap.addr(),
             len,
             _mmap: Arc::new(Mutex::new(mmap)),
+            available_queue: Arc::new(Mutex::new(VecDeque::new())),
         })
     }
 
@@ -66,6 +71,73 @@ impl UmemRegion {
         self.addr.as_ptr()
     }
 
+    /// Get an available frame from available queue.
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    // #[inline]
+    pub fn get_frame(&mut self) -> Option<FrameDesc> {
+        self.available_queue.lock().unwrap().pop_front()
+    }
+
+    /// Release a frame to available queue
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    // #[inline]
+    pub fn release_frame(&mut self, desc: FrameDesc) {
+        self.available_queue.lock().unwrap().push_back(desc);
+    }
+
+    /// Get a headroom's IoSlice instance from the frame described by `desc`.
+    ///
+    /// # Safety
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    /// 'headroom_delta' means the right delta of headroom(just before `data` segment)
+    #[inline]
+    pub unsafe fn get_headroom_IoSlice(&self, desc: &FrameDesc, headroom_delta: usize) -> IoSlice {
+        let ptr = unsafe { self.headroom_delta_ptr(desc, headroom_delta) };
+        IoSlice::new(unsafe { slice::from_raw_parts_mut(ptr, headroom_delta) })
+    }
+
+    /// Get a headroom's IoSliceMut instance from the frame described by `desc`.
+    ///
+    /// # Safety
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    /// 'headroom_delta' means the right delta of headroom(just before `data` segment)
+    #[inline]
+    pub unsafe fn get_headroom_IoSliceMut(&self, desc: &mut FrameDesc, headroom_delta: usize) -> IoSliceMut {
+        let ptr = unsafe { self.headroom_delta_ptr(desc, headroom_delta) };
+        let d = unsafe { slice::from_raw_parts_mut(ptr, headroom_delta) };
+        desc.adjust_headroom(headroom_delta);
+        IoSliceMut::new(d)
+    }
+
+    /// Get a data's IoSlice instance from the frame described by `desc`.
+    ///
+    /// # Safety
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    #[inline]
+    pub unsafe fn get_data_IoSlice(&self, desc: &FrameDesc) -> IoSlice {
+        let data_ptr = unsafe { self.data_ptr(&desc) };
+        IoSlice::new(unsafe { slice::from_raw_parts_mut(data_ptr, desc.lengths.data) })
+    }
+
+    /// Get a data's IoSliceMut instance from the frame described by `desc`.
+    ///
+    /// # Safety
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    /// `length` means data length of slice
+    #[inline]
+    pub unsafe fn get_data_IoSliceMut(&self, desc: &mut FrameDesc, length: usize) -> IoSliceMut {
+        let data_ptr = unsafe { self.data_ptr(&desc) };
+        let d = unsafe { slice::from_raw_parts_mut(data_ptr, length) };
+        desc.adjust_data(length);
+        IoSliceMut::new(d)
+    }
+
     /// A pointer to the headroom segment of the frame described by
     /// `desc`.
     ///
@@ -78,7 +150,20 @@ impl UmemRegion {
         unsafe { self.as_ptr().add(addr) as *mut u8 }
     }
 
-    /// A pointer to the headroom segment of the frame described to by
+    /// A pointer to the delta right headroom segment of the frame described by
+    /// `desc`.
+    ///
+    /// # Safety
+    ///
+    /// `desc` must describe a frame belonging to this [`UmemRegion`].
+    /// `delta` means the right delta of headroom(just before `data` segment) 
+    #[inline]
+    unsafe fn headroom_delta_ptr(&self, desc: &FrameDesc, delta: usize) -> *mut u8 {
+        let addr = desc.addr - delta;
+        unsafe { self.as_ptr().add(addr) as *mut u8 }
+    }
+
+    /// A pointer to the data segment of the frame described to by
     /// `desc`.
     ///
     /// # Safety
