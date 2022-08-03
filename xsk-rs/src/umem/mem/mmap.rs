@@ -13,7 +13,7 @@ mod inner {
     use super::*;
 
     /// An anonymous memory mapped region.
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Mmap {
         addr: NonNull<libc::c_void>,
         len: usize,

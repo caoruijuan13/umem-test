@@ -109,20 +109,20 @@ pub fn check_read(to_write: &[u8], iovecs: &mut Vec<IoSliceMut>) {
     let pipe_res = pipe();
     assert!(pipe_res.is_ok());
     
-    let fd = super::socket::init_sock();
+    // let fd = super::socket::init_sock();
 
     let (reader, writer) = pipe_res.ok().unwrap();
     // Blocking io, should write all data.
-    // let write_res = write(writer, to_write);
-    let write_res = pwrite(fd, &to_write, to_write.len() as i64);
+    let write_res = write(writer, to_write);
+    // let write_res = pwrite(fd, &to_write, to_write.len() as i64);
 
 
     // Successful write
     println!("write_res:{:?}", write_res);
     assert!(write_res.is_ok());
 
-    let read_res = readv(fd, &mut iovecs[..]);
-    // let read_res = readv(reader, &mut iovecs[..]);
+    // let read_res = readv(fd, &mut iovecs[..]);
+    let read_res = readv(reader, &mut iovecs[..]);
     println!("read_res:{:?}", read_res);
     assert!(read_res.is_ok());
     let read = read_res.ok().unwrap();

@@ -28,7 +28,7 @@ pub async fn umem_test() {
     );
 
     // init
-    let (umem, mut descs) = Umem::new(config, frame_count.try_into().unwrap(), false).unwrap();
+    let (umem, mut descs, _) = Umem::new(config, frame_count.try_into().unwrap(), false).unwrap();
     let mut desc0 = descs[0];
     let mut desc1 = descs[1];
 

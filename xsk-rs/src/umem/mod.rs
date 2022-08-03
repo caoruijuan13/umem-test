@@ -1,5 +1,8 @@
 //! Types for interacting with and creating a [`Umem`].
 
+mod queue;
+pub use queue::Queue;
+
 mod mem;
 use mem::UmemRegion;
 
@@ -116,7 +119,7 @@ impl Umem {
         config: UmemConfig,
         frame_count: NonZeroU32,
         use_huge_pages: bool,
-    ) -> Result<(Self, Vec<FrameDesc>), UmemCreateError> {
+    ) -> Result<(Self, Vec<FrameDesc>, Queue), UmemCreateError> {
         let frame_layout = config.into();
 
         let mem = UmemRegion::new(frame_count, frame_layout, use_huge_pages).map_err(|e| {
@@ -182,7 +185,7 @@ impl Umem {
         let frame_count = frame_count.get() as usize;
 
         let mut frame_descs: Vec<FrameDesc> = Vec::with_capacity(frame_count);
-        let mut available_queue: VecDeque<FrameDesc> = VecDeque::with_capacity(frame_count);
+        let mut available_queue: VecDeque<usize> = VecDeque::with_capacity(frame_count);
 
         for i in 0..frame_count {
             let addr = (i * frame_layout.frame_size())
@@ -190,7 +193,7 @@ impl Umem {
                 + frame_layout.frame_headroom;
 
             frame_descs.push(FrameDesc::new(addr));
-            available_queue.push_back(frame_descs[i]);
+            available_queue.push_back(i);
         }
 
         let umem = Umem {
@@ -198,8 +201,9 @@ impl Umem {
             mem,
             // available_queue
         };
-
-        Ok((umem, frame_descs))
+        let queue = Queue::init_queue(available_queue);
+    
+        Ok((umem, frame_descs, queue))
     }
 
     /// Get an available frame from available queue.
